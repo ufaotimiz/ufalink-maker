@@ -1,0 +1,70 @@
+import { z } from "zod";
+
+import { isValidSlug } from "@/lib/slug";
+
+const slugSchema = z
+  .string()
+  .trim()
+  .min(2, "Mínimo 2 caracteres")
+  .max(50, "Máximo 50 caracteres")
+  .refine(isValidSlug, "Slug inválido (use a-z, 0-9, hífen) ou reservado");
+
+const urlSchema = z
+  .string()
+  .trim()
+  .url("URL inválida — inclua https://")
+  .max(500);
+
+const optionalUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .url("URL inválida")
+  .optional()
+  .or(z.literal(""));
+
+export const createPageSchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório").max(100),
+  slug: slugSchema,
+});
+
+export const SOCIAL_PLATFORMS = [
+  "INSTAGRAM",
+  "FACEBOOK",
+  "TIKTOK",
+  "X",
+  "YOUTUBE",
+  "LINKEDIN",
+  "WHATSAPP",
+  "WEBSITE",
+  "EMAIL",
+] as const;
+
+export const THEME_MODES = ["LIGHT", "DARK", "AUTO"] as const;
+
+export const updatePageSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  bio: z.string().trim().max(280).optional().or(z.literal("")),
+  avatarUrl: optionalUrl,
+  coverUrl: optionalUrl,
+  themeColor: z
+    .string()
+    .trim()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Use formato #RRGGBB"),
+  themeMode: z.enum(THEME_MODES),
+});
+
+export const socialLinkSchema = z.object({
+  platform: z.enum(SOCIAL_PLATFORMS),
+  url: urlSchema,
+});
+
+export const customButtonSchema = z.object({
+  label: z.string().trim().min(1, "Texto obrigatório").max(80),
+  url: urlSchema,
+});
+
+export type CreatePageInput = z.infer<typeof createPageSchema>;
+export type UpdatePageInput = z.infer<typeof updatePageSchema>;
+export type SocialLinkInput = z.infer<typeof socialLinkSchema>;
+export type CustomButtonInput = z.infer<typeof customButtonSchema>;
