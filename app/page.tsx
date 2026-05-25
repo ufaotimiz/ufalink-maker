@@ -9,6 +9,8 @@ import {
   Wrench,
 } from "lucide-react";
 
+import { auth } from "@/auth";
+import { signInWithGoogle } from "@/lib/auth-actions";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,7 +38,9 @@ const FEATURES = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await auth();
+
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
       <Header />
@@ -59,10 +63,21 @@ export default function HomePage() {
             quiser.
           </p>
           <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
-            <Button size="lg" className="w-full sm:w-auto" disabled>
-              Entrar com Google
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            {session?.user ? (
+              <Button size="lg" className="w-full sm:w-auto" asChild>
+                <Link href="/dashboard">
+                  Ir para o dashboard
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <form action={signInWithGoogle} className="w-full sm:w-auto">
+                <Button type="submit" size="lg" className="w-full">
+                  Entrar com Google
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </form>
+            )}
             <Button
               size="lg"
               variant="outline"
@@ -75,9 +90,6 @@ export default function HomePage() {
               </Link>
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Login chega em breve — estamos finalizando.
-          </p>
         </section>
 
         <section className="mx-auto mt-20 grid max-w-5xl gap-4 sm:grid-cols-2">

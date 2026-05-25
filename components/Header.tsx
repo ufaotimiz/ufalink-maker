@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Link2 } from "lucide-react";
 
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 
 const NAV_LINKS = [
@@ -37,6 +38,7 @@ export function Header() {
             </Button>
           ))}
           <ThemeToggle />
+          <UserMenu />
         </nav>
       </div>
     </header>
