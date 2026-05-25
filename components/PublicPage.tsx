@@ -31,6 +31,7 @@ type ThemeMode = "LIGHT" | "DARK" | "AUTO";
 
 type SocialLink = { id: string; platform: Social; url: string };
 type CustomButton = { id: string; label: string; url: string };
+type GalleryImage = { id: string; url: string; caption: string | null };
 
 const SOCIAL_ICON: Record<Social, LucideIcon> = {
   INSTAGRAM: Instagram,
@@ -66,6 +67,7 @@ type Props = {
     themeMode: ThemeMode;
     socialLinks: SocialLink[];
     buttons: CustomButton[];
+    gallery: GalleryImage[];
   };
 };
 
@@ -198,6 +200,39 @@ export function PublicPage({ page }: Props) {
                 {btn.label}
               </a>
             ))}
+          </div>
+        ) : null}
+
+        {page.gallery.length > 0 ? (
+          <div className="mt-10">
+            <h2 className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+              Galeria
+            </h2>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              {page.gallery.map((img) => (
+                <a
+                  key={img.id}
+                  href={img.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative aspect-square overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900"
+                  aria-label={img.caption ?? "Imagem"}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.url}
+                    alt={img.caption ?? ""}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
+                  {img.caption ? (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+                      {img.caption}
+                    </div>
+                  ) : null}
+                </a>
+              ))}
+            </div>
           </div>
         ) : null}
 

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, MousePointerClick, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, MousePointerClick, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { addCustomButton, removeCustomButton } from "@/lib/page-actions";
+import { addCustomButton, removeCustomButton, reorderItems } from "@/lib/page-actions";
 
 type ButtonItem = { id: string; label: string; url: string };
 
@@ -21,6 +21,7 @@ export function CustomButtonsEditor({ clientPageId, buttons }: Props) {
   const [url, setUrl] = useState("");
   const [pendingAdd, startAdd] = useTransition();
   const [pendingDelete, startDelete] = useTransition();
+  const [pendingMove, startMove] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const onAdd = (e: React.FormEvent) => {
@@ -43,6 +44,23 @@ export function CustomButtonsEditor({ clientPageId, buttons }: Props) {
       if (!result.ok) toast.error(result.error);
       else toast.success("Removido");
       setDeletingId(null);
+    });
+  };
+
+  const onMove = (id: string, direction: "up" | "down") => {
+    const idx = buttons.findIndex((b) => b.id === id);
+    if (idx === -1) return;
+    const newIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= buttons.length) return;
+    const next = [...buttons];
+    [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+    startMove(async () => {
+      const result = await reorderItems(
+        clientPageId,
+        "button",
+        next.map((b) => b.id),
+      );
+      if (!result.ok) toast.error(result.error);
     });
   };
 
@@ -86,11 +104,35 @@ export function CustomButtonsEditor({ clientPageId, buttons }: Props) {
         </p>
       ) : (
         <ul className="space-y-2">
-          {buttons.map((btn) => (
+          {buttons.map((btn, idx) => (
             <li
               key={btn.id}
-              className="flex items-center gap-3 rounded-lg border bg-card p-3"
+              className="flex items-center gap-2 rounded-lg border bg-card p-3"
             >
+              <div className="flex flex-col">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onMove(btn.id, "up")}
+                  disabled={idx === 0 || pendingMove}
+                  className="h-5 w-5"
+                  aria-label="Mover para cima"
+                >
+                  <ArrowUp className="h-3 w-3" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onMove(btn.id, "down")}
+                  disabled={idx === buttons.length - 1 || pendingMove}
+                  className="h-5 w-5"
+                  aria-label="Mover para baixo"
+                >
+                  <ArrowDown className="h-3 w-3" />
+                </Button>
+              </div>
               <MousePointerClick className="h-5 w-5 shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{btn.label}</p>

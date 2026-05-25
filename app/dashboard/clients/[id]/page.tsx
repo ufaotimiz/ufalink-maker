@@ -18,6 +18,7 @@ import { DeleteClientButton } from "@/components/DeleteClientButton";
 import { PageHeaderEditor } from "@/components/PageHeaderEditor";
 import { SocialLinksEditor } from "@/components/SocialLinksEditor";
 import { CustomButtonsEditor } from "@/components/CustomButtonsEditor";
+import { GalleryEditor } from "@/components/GalleryEditor";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 
@@ -35,6 +36,7 @@ export default async function EditClientPage({
     include: {
       socialLinks: { orderBy: { order: "asc" } },
       buttons: { orderBy: { order: "asc" } },
+      gallery: { orderBy: { order: "asc" } },
     },
   });
   if (!page) notFound();
@@ -136,6 +138,21 @@ export default async function EditClientPage({
               <CustomButtonsEditor
                 clientPageId={page.id}
                 buttons={page.buttons}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Galeria</CardTitle>
+              <CardDescription>
+                Imagens em grid no fim da página pública. Cole URLs externas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <GalleryEditor
+                clientPageId={page.id}
+                images={page.gallery}
               />
             </CardContent>
           </Card>

@@ -44,6 +44,7 @@ export default async function PublicClientPage({
     include: {
       socialLinks: { orderBy: { order: "asc" } },
       buttons: { orderBy: { order: "asc" } },
+      gallery: { orderBy: { order: "asc" } },
     },
   });
   if (!page) notFound();

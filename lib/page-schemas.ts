@@ -64,7 +64,13 @@ export const customButtonSchema = z.object({
   url: urlSchema,
 });
 
+export const galleryImageSchema = z.object({
+  url: urlSchema,
+  caption: z.string().trim().max(120).optional().or(z.literal("")),
+});
+
 export type CreatePageInput = z.infer<typeof createPageSchema>;
 export type UpdatePageInput = z.infer<typeof updatePageSchema>;
 export type SocialLinkInput = z.infer<typeof socialLinkSchema>;
 export type CustomButtonInput = z.infer<typeof customButtonSchema>;
+export type GalleryImageInput = z.infer<typeof galleryImageSchema>;

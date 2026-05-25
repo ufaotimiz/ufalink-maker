@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Facebook, Globe, Instagram, Linkedin, Loader2, Mail, MessageCircle, Music2, Plus, Trash2, Twitter, Youtube } from "lucide-react";
+import { ArrowDown, ArrowUp, Facebook, Globe, Instagram, Linkedin, Loader2, Mail, MessageCircle, Music2, Plus, Trash2, Twitter, Youtube } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { addSocialLink, removeSocialLink } from "@/lib/page-actions";
+import { addSocialLink, removeSocialLink, reorderItems } from "@/lib/page-actions";
 import { SOCIAL_PLATFORMS } from "@/lib/page-schemas";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -97,6 +97,7 @@ export function SocialLinksEditor({ clientPageId, links }: Props) {
   const [url, setUrl] = useState("");
   const [pendingAdd, startAdd] = useTransition();
   const [pendingDelete, startDelete] = useTransition();
+  const [pendingMove, startMove] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const onAdd = (e: React.FormEvent) => {
@@ -118,6 +119,23 @@ export function SocialLinksEditor({ clientPageId, links }: Props) {
       if (!result.ok) toast.error(result.error);
       else toast.success("Removido");
       setDeletingId(null);
+    });
+  };
+
+  const onMove = (id: string, direction: "up" | "down") => {
+    const idx = links.findIndex((l) => l.id === id);
+    if (idx === -1) return;
+    const newIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= links.length) return;
+    const next = [...links];
+    [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+    startMove(async () => {
+      const result = await reorderItems(
+        clientPageId,
+        "social",
+        next.map((l) => l.id),
+      );
+      if (!result.ok) toast.error(result.error);
     });
   };
 
@@ -185,14 +203,38 @@ export function SocialLinksEditor({ clientPageId, links }: Props) {
         </p>
       ) : (
         <ul className="space-y-2">
-          {links.map((link) => {
+          {links.map((link, idx) => {
             const lmeta = META[link.platform];
             const LIcon = lmeta.icon;
             return (
               <li
                 key={link.id}
-                className="flex items-center gap-3 rounded-lg border bg-card p-3"
+                className="flex items-center gap-2 rounded-lg border bg-card p-3"
               >
+                <div className="flex flex-col">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onMove(link.id, "up")}
+                    disabled={idx === 0 || pendingMove}
+                    className="h-5 w-5"
+                    aria-label="Mover para cima"
+                  >
+                    <ArrowUp className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onMove(link.id, "down")}
+                    disabled={idx === links.length - 1 || pendingMove}
+                    className="h-5 w-5"
+                    aria-label="Mover para baixo"
+                  >
+                    <ArrowDown className="h-3 w-3" />
+                  </Button>
+                </div>
                 <LIcon className={cn("h-5 w-5 shrink-0", lmeta.color)} />
                 <div className="min-w-0 flex-1">
                   <Badge variant="secondary" className="mb-1">

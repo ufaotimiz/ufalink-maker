@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import {
   createPageSchema,
   customButtonSchema,
+  galleryImageSchema,
   socialLinkSchema,
   updatePageSchema,
 } from "@/lib/page-schemas";
@@ -273,6 +274,117 @@ export async function removeCustomButton(
     await prisma.customButton.delete({ where: { id: buttonId } });
     revalidatePath(`/dashboard/clients/${btn.clientPageId}`);
     revalidatePath(`/p/${btn.clientPage.slug}`);
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro inesperado",
+    };
+  }
+}
+
+// ============================================================
+// GalleryImages
+// ============================================================
+
+export async function addGalleryImage(
+  clientPageId: string,
+  input: { url: string; caption?: string },
+): Promise<ActionResult> {
+  try {
+    const userId = await requireUserId();
+    await assertOwner(clientPageId, userId);
+
+    const parsed = galleryImageSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Inválido" };
+    }
+
+    const count = await prisma.galleryImage.count({ where: { clientPageId } });
+    await prisma.galleryImage.create({
+      data: {
+        clientPageId,
+        url: parsed.data.url,
+        caption: parsed.data.caption || null,
+        order: count,
+      },
+    });
+
+    const page = await prisma.clientPage.findUnique({
+      where: { id: clientPageId },
+      select: { slug: true },
+    });
+    revalidatePath(`/dashboard/clients/${clientPageId}`);
+    if (page) revalidatePath(`/p/${page.slug}`);
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro inesperado",
+    };
+  }
+}
+
+export async function removeGalleryImage(
+  imageId: string,
+): Promise<ActionResult> {
+  try {
+    const userId = await requireUserId();
+    const img = await prisma.galleryImage.findUnique({
+      where: { id: imageId },
+      select: { clientPageId: true, clientPage: { select: { ownerId: true, slug: true } } },
+    });
+    if (!img) return { ok: false, error: "Não encontrado" };
+    if (img.clientPage.ownerId !== userId)
+      return { ok: false, error: "Sem permissão" };
+
+    await prisma.galleryImage.delete({ where: { id: imageId } });
+    revalidatePath(`/dashboard/clients/${img.clientPageId}`);
+    revalidatePath(`/p/${img.clientPage.slug}`);
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro inesperado",
+    };
+  }
+}
+
+// ============================================================
+// Reorder (genérico para social/button/gallery)
+// ============================================================
+
+type ItemKind = "social" | "button" | "gallery";
+
+export async function reorderItems(
+  clientPageId: string,
+  kind: ItemKind,
+  orderedIds: string[],
+): Promise<ActionResult> {
+  try {
+    const userId = await requireUserId();
+    await assertOwner(clientPageId, userId);
+
+    await prisma.$transaction(
+      orderedIds.map((id, idx) => {
+        const data = { order: idx };
+        const where = { id, clientPageId };
+        if (kind === "social") {
+          return prisma.socialLink.updateMany({ where, data });
+        }
+        if (kind === "button") {
+          return prisma.customButton.updateMany({ where, data });
+        }
+        return prisma.galleryImage.updateMany({ where, data });
+      }),
+    );
+
+    const page = await prisma.clientPage.findUnique({
+      where: { id: clientPageId },
+      select: { slug: true },
+    });
+    revalidatePath(`/dashboard/clients/${clientPageId}`);
+    if (page) revalidatePath(`/p/${page.slug}`);
     return { ok: true };
   } catch (err) {
     return {
