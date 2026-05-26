@@ -6,11 +6,14 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
+  blockInputSchema,
   createPageSchema,
   customButtonSchema,
   galleryImageSchema,
   socialLinkSchema,
+  updateFontsSchema,
   updatePageSchema,
+  type BlockInput,
 } from "@/lib/page-schemas";
 
 type ActionResult<T = unknown> =
@@ -114,6 +117,39 @@ export async function updateClientPage(
     });
 
     revalidatePath("/dashboard");
+    revalidatePath(`/dashboard/clients/${clientPageId}`);
+    revalidatePath(`/p/${page.slug}`);
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro inesperado",
+    };
+  }
+}
+
+export async function updateClientPageFonts(
+  clientPageId: string,
+  input: { headingFont: string; bodyFont: string },
+): Promise<ActionResult> {
+  try {
+    const userId = await requireUserId();
+    await assertOwner(clientPageId, userId);
+
+    const parsed = updateFontsSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Inválido" };
+    }
+
+    const page = await prisma.clientPage.update({
+      where: { id: clientPageId },
+      data: {
+        headingFont: parsed.data.headingFont,
+        bodyFont: parsed.data.bodyFont,
+      },
+      select: { slug: true },
+    });
+
     revalidatePath(`/dashboard/clients/${clientPageId}`);
     revalidatePath(`/p/${page.slug}`);
     return { ok: true };
@@ -351,10 +387,125 @@ export async function removeGalleryImage(
 }
 
 // ============================================================
-// Reorder (genérico para social/button/gallery)
+// Blocks (conteúdo livre — imagens, parágrafos, áudios, etc.)
 // ============================================================
 
-type ItemKind = "social" | "button" | "gallery";
+function normalizeBlock(input: BlockInput) {
+  return {
+    type: input.type,
+    text: input.text ? input.text : null,
+    url: input.url ? input.url : null,
+    caption: input.caption ? input.caption : null,
+  };
+}
+
+export async function addBlock(
+  clientPageId: string,
+  input: BlockInput,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const userId = await requireUserId();
+    await assertOwner(clientPageId, userId);
+
+    const parsed = blockInputSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Inválido" };
+    }
+
+    const count = await prisma.block.count({ where: { clientPageId } });
+    const block = await prisma.block.create({
+      data: {
+        clientPageId,
+        ...normalizeBlock(parsed.data),
+        order: count,
+      },
+      select: { id: true },
+    });
+
+    const page = await prisma.clientPage.findUnique({
+      where: { id: clientPageId },
+      select: { slug: true },
+    });
+    revalidatePath(`/dashboard/clients/${clientPageId}`);
+    if (page) revalidatePath(`/p/${page.slug}`);
+    return { ok: true, data: { id: block.id } };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro inesperado",
+    };
+  }
+}
+
+export async function updateBlock(
+  blockId: string,
+  input: BlockInput,
+): Promise<ActionResult> {
+  try {
+    const userId = await requireUserId();
+    const existing = await prisma.block.findUnique({
+      where: { id: blockId },
+      select: {
+        clientPageId: true,
+        clientPage: { select: { ownerId: true, slug: true } },
+      },
+    });
+    if (!existing) return { ok: false, error: "Bloco não encontrado" };
+    if (existing.clientPage.ownerId !== userId)
+      return { ok: false, error: "Sem permissão" };
+
+    const parsed = blockInputSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Inválido" };
+    }
+
+    await prisma.block.update({
+      where: { id: blockId },
+      data: normalizeBlock(parsed.data),
+    });
+
+    revalidatePath(`/dashboard/clients/${existing.clientPageId}`);
+    revalidatePath(`/p/${existing.clientPage.slug}`);
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro inesperado",
+    };
+  }
+}
+
+export async function removeBlock(blockId: string): Promise<ActionResult> {
+  try {
+    const userId = await requireUserId();
+    const existing = await prisma.block.findUnique({
+      where: { id: blockId },
+      select: {
+        clientPageId: true,
+        clientPage: { select: { ownerId: true, slug: true } },
+      },
+    });
+    if (!existing) return { ok: false, error: "Bloco não encontrado" };
+    if (existing.clientPage.ownerId !== userId)
+      return { ok: false, error: "Sem permissão" };
+
+    await prisma.block.delete({ where: { id: blockId } });
+    revalidatePath(`/dashboard/clients/${existing.clientPageId}`);
+    revalidatePath(`/p/${existing.clientPage.slug}`);
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro inesperado",
+    };
+  }
+}
+
+// ============================================================
+// Reorder (genérico para social/button/gallery/block)
+// ============================================================
+
+type ItemKind = "social" | "button" | "gallery" | "block";
 
 export async function reorderItems(
   clientPageId: string,
@@ -374,6 +525,9 @@ export async function reorderItems(
         }
         if (kind === "button") {
           return prisma.customButton.updateMany({ where, data });
+        }
+        if (kind === "block") {
+          return prisma.block.updateMany({ where, data });
         }
         return prisma.galleryImage.updateMany({ where, data });
       }),

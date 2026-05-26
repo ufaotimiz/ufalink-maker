@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { FONT_KEYS } from "@/lib/fonts";
 import { isValidSlug } from "@/lib/slug";
 
 const slugSchema = z
@@ -42,6 +43,11 @@ export const SOCIAL_PLATFORMS = [
 
 export const THEME_MODES = ["LIGHT", "DARK", "AUTO"] as const;
 
+const fontKeySchema = z
+  .string()
+  .trim()
+  .refine((v) => (FONT_KEYS as readonly string[]).includes(v), "Fonte inválida");
+
 export const updatePageSchema = z.object({
   name: z.string().trim().min(1).max(100),
   bio: z.string().trim().max(280).optional().or(z.literal("")),
@@ -53,6 +59,70 @@ export const updatePageSchema = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/, "Use formato #RRGGBB"),
   themeMode: z.enum(THEME_MODES),
 });
+
+export const updateFontsSchema = z.object({
+  headingFont: fontKeySchema,
+  bodyFont: fontKeySchema,
+});
+
+export const BLOCK_TYPES = [
+  "HEADING",
+  "PARAGRAPH",
+  "IMAGE",
+  "AUDIO",
+  "VIDEO",
+  "FILE",
+  "DOCUMENT",
+  "EMBED",
+  "DIVIDER",
+] as const;
+
+export type BlockType = (typeof BLOCK_TYPES)[number];
+
+// Cada tipo tem campos diferentes. Validamos no server pela combinação.
+export const blockInputSchema = z
+  .object({
+    type: z.enum(BLOCK_TYPES),
+    text: z.string().trim().max(2000).optional().or(z.literal("")),
+    url: z.string().trim().max(1000).optional().or(z.literal("")),
+    caption: z.string().trim().max(280).optional().or(z.literal("")),
+  })
+  .superRefine((data, ctx) => {
+    const needsText: BlockType[] = ["HEADING", "PARAGRAPH"];
+    const needsUrl: BlockType[] = [
+      "IMAGE",
+      "AUDIO",
+      "VIDEO",
+      "FILE",
+      "DOCUMENT",
+      "EMBED",
+    ];
+    if (needsText.includes(data.type) && !data.text) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["text"],
+        message: "Texto obrigatório",
+      });
+    }
+    if (needsUrl.includes(data.type)) {
+      if (!data.url) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["url"],
+          message: "URL obrigatória",
+        });
+      } else {
+        const parsed = z.string().url().safeParse(data.url);
+        if (!parsed.success) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["url"],
+            message: "URL inválida — inclua https://",
+          });
+        }
+      }
+    }
+  });
 
 export const socialLinkSchema = z.object({
   platform: z.enum(SOCIAL_PLATFORMS),
@@ -71,6 +141,8 @@ export const galleryImageSchema = z.object({
 
 export type CreatePageInput = z.infer<typeof createPageSchema>;
 export type UpdatePageInput = z.infer<typeof updatePageSchema>;
+export type UpdateFontsInput = z.infer<typeof updateFontsSchema>;
 export type SocialLinkInput = z.infer<typeof socialLinkSchema>;
 export type CustomButtonInput = z.infer<typeof customButtonSchema>;
 export type GalleryImageInput = z.infer<typeof galleryImageSchema>;
+export type BlockInput = z.infer<typeof blockInputSchema>;

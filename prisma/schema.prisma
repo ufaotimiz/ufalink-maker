@@ -3,8 +3,11 @@
 // Migrate with: `npx prisma migrate dev --name <name>`
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Runtime: connection pooled (Neon + pgbouncer)
+  url       = env("DATABASE_URL")
+  // Migrations: conexão direta (Neon "direct" string, sem pgbouncer)
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -103,9 +106,14 @@ model ClientPage {
   themeColor  String         @default("#0f172a")
   themeMode   ThemeMode      @default(LIGHT)
 
+  // Fontes (chave Google Fonts — ver lib/fonts.ts)
+  headingFont String         @default("Inter")
+  bodyFont    String         @default("Inter")
+
   socialLinks SocialLink[]
   buttons     CustomButton[]
   gallery     GalleryImage[]
+  blocks      Block[]
 
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -145,6 +153,38 @@ model GalleryImage {
   url          String
   caption      String?
   order        Int        @default(0)
+
+  @@index([clientPageId])
+}
+
+enum BlockType {
+  HEADING
+  PARAGRAPH
+  IMAGE
+  AUDIO
+  VIDEO
+  FILE
+  DOCUMENT
+  EMBED
+  DIVIDER
+}
+
+model Block {
+  id           String     @id @default(cuid())
+  clientPageId String
+  clientPage   ClientPage @relation(fields: [clientPageId], references: [id], onDelete: Cascade)
+
+  type         BlockType
+  // text é usado por HEADING, PARAGRAPH e como título/legenda dos demais
+  text         String?    @db.Text
+  // url é usado por IMAGE, AUDIO, VIDEO, FILE, DOCUMENT, EMBED
+  url          String?
+  // caption opcional (descrição, autor, etc.)
+  caption      String?
+  order        Int        @default(0)
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@index([clientPageId])
 }

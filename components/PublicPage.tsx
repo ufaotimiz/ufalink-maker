@@ -2,18 +2,22 @@
 
 import Link from "next/link";
 import {
+  Download,
   Facebook,
+  FileText,
   Globe,
   Instagram,
   Linkedin,
   Mail,
   MessageCircle,
   Music2,
+  Paperclip,
   Twitter,
   Youtube,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { findFont, googleFontsHref } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
 type Social =
@@ -29,9 +33,27 @@ type Social =
 
 type ThemeMode = "LIGHT" | "DARK" | "AUTO";
 
+type BlockType =
+  | "HEADING"
+  | "PARAGRAPH"
+  | "IMAGE"
+  | "AUDIO"
+  | "VIDEO"
+  | "FILE"
+  | "DOCUMENT"
+  | "EMBED"
+  | "DIVIDER";
+
 type SocialLink = { id: string; platform: Social; url: string };
 type CustomButton = { id: string; label: string; url: string };
 type GalleryImage = { id: string; url: string; caption: string | null };
+type Block = {
+  id: string;
+  type: BlockType;
+  text: string | null;
+  url: string | null;
+  caption: string | null;
+};
 
 const SOCIAL_ICON: Record<Social, LucideIcon> = {
   INSTAGRAM: Instagram,
@@ -65,9 +87,12 @@ type Props = {
     coverUrl: string | null;
     themeColor: string;
     themeMode: ThemeMode;
+    headingFont: string;
+    bodyFont: string;
     socialLinks: SocialLink[];
     buttons: CustomButton[];
     gallery: GalleryImage[];
+    blocks: Block[];
   };
 };
 
@@ -81,6 +106,10 @@ export function PublicPage({ page }: Props) {
       ? "bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50"
       : "bg-white text-zinc-900";
 
+  const heading = findFont(page.headingFont);
+  const body = findFont(page.bodyFont);
+  const fontsHref = googleFontsHref([heading.key, body.key]);
+
   const initials = page.name
     .split(/\s+/)
     .map((w) => w[0])
@@ -91,8 +120,16 @@ export function PublicPage({ page }: Props) {
   return (
     <div
       className={cn("min-h-screen", themeClass)}
-      style={{ ["--brand" as never]: page.themeColor }}
+      style={{
+        ["--brand" as never]: page.themeColor,
+        fontFamily: body.stack,
+      }}
     >
+      {fontsHref ? (
+        // eslint-disable-next-line @next/next/no-css-tags
+        <link href={fontsHref} rel="stylesheet" />
+      ) : null}
+
       {page.coverUrl ? (
         <div
           className="relative h-44 w-full bg-cover bg-center sm:h-60"
@@ -121,14 +158,19 @@ export function PublicPage({ page }: Props) {
           ) : (
             <div
               className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-white text-3xl font-bold text-white shadow-lg dark:border-zinc-900"
-              style={{ backgroundColor: page.themeColor }}
+              style={{ backgroundColor: page.themeColor, fontFamily: heading.stack }}
             >
               {initials}
             </div>
           )}
 
           <div className="space-y-1.5">
-            <h1 className="text-2xl font-bold tracking-tight">{page.name}</h1>
+            <h1
+              className="text-2xl font-bold tracking-tight"
+              style={{ fontFamily: heading.stack }}
+            >
+              {page.name}
+            </h1>
             {page.bio ? (
               <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
                 {page.bio}
@@ -148,9 +190,6 @@ export function PublicPage({ page }: Props) {
                     rel="noopener noreferrer"
                     aria-label={SOCIAL_LABEL[social.platform]}
                     className="flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 transition-all hover:scale-110 hover:text-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
-                    style={{
-                      ["--tw-hover-bg" as never]: page.themeColor,
-                    }}
                     onMouseEnter={(e) => {
                       (e.currentTarget as HTMLElement).style.backgroundColor =
                         page.themeColor;
@@ -185,6 +224,7 @@ export function PublicPage({ page }: Props) {
                 style={{
                   borderColor: page.themeColor,
                   color: page.themeColor,
+                  fontFamily: heading.stack,
                 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.backgroundColor =
@@ -203,9 +243,25 @@ export function PublicPage({ page }: Props) {
           </div>
         ) : null}
 
+        {page.blocks.length > 0 ? (
+          <div className="mt-10 space-y-6">
+            {page.blocks.map((block) => (
+              <BlockView
+                key={block.id}
+                block={block}
+                headingFont={heading.stack}
+                themeColor={page.themeColor}
+              />
+            ))}
+          </div>
+        ) : null}
+
         {page.gallery.length > 0 ? (
           <div className="mt-10">
-            <h2 className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+            <h2
+              className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
+              style={{ fontFamily: heading.stack }}
+            >
               Galeria
             </h2>
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
@@ -247,4 +303,173 @@ export function PublicPage({ page }: Props) {
       </div>
     </div>
   );
+}
+
+function BlockView({
+  block,
+  headingFont,
+  themeColor,
+}: {
+  block: Block;
+  headingFont: string;
+  themeColor: string;
+}) {
+  switch (block.type) {
+    case "HEADING":
+      return (
+        <h2
+          className="text-xl font-bold tracking-tight"
+          style={{ fontFamily: headingFont, color: themeColor }}
+        >
+          {block.text}
+        </h2>
+      );
+
+    case "PARAGRAPH":
+      return (
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">
+          {block.text}
+        </p>
+      );
+
+    case "IMAGE":
+      if (!block.url) return null;
+      return (
+        <figure className="space-y-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={block.url}
+            alt={block.caption ?? ""}
+            loading="lazy"
+            className="w-full rounded-lg border border-zinc-200 object-cover dark:border-zinc-800"
+          />
+          {block.caption ? (
+            <figcaption className="text-center text-xs text-zinc-500 dark:text-zinc-400">
+              {block.caption}
+            </figcaption>
+          ) : null}
+        </figure>
+      );
+
+    case "AUDIO":
+      if (!block.url) return null;
+      return (
+        <div className="space-y-2">
+          {block.caption ? (
+            <p
+              className="text-sm font-medium"
+              style={{ fontFamily: headingFont }}
+            >
+              {block.caption}
+            </p>
+          ) : null}
+          <audio
+            controls
+            preload="metadata"
+            src={block.url}
+            className="w-full"
+          />
+        </div>
+      );
+
+    case "VIDEO":
+      if (!block.url) return null;
+      return (
+        <div className="space-y-2">
+          {block.caption ? (
+            <p
+              className="text-sm font-medium"
+              style={{ fontFamily: headingFont }}
+            >
+              {block.caption}
+            </p>
+          ) : null}
+          <video
+            controls
+            preload="metadata"
+            src={block.url}
+            className="w-full rounded-lg border border-zinc-200 dark:border-zinc-800"
+          />
+        </div>
+      );
+
+    case "FILE":
+      if (!block.url) return null;
+      return (
+        <a
+          href={block.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-colors hover:border-current dark:border-zinc-800 dark:bg-zinc-900"
+          style={{ color: themeColor }}
+        >
+          <Paperclip className="h-5 w-5 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">
+              {block.caption ?? "Baixar arquivo"}
+            </p>
+            <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+              {block.url}
+            </p>
+          </div>
+          <Download className="h-4 w-4 shrink-0" />
+        </a>
+      );
+
+    case "DOCUMENT":
+      if (!block.url) return null;
+      return (
+        <a
+          href={block.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-colors hover:border-current dark:border-zinc-800 dark:bg-zinc-900"
+          style={{ color: themeColor }}
+        >
+          <FileText className="h-5 w-5 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">
+              {block.caption ?? "Abrir documento"}
+            </p>
+            <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+              {block.url}
+            </p>
+          </div>
+          <Download className="h-4 w-4 shrink-0" />
+        </a>
+      );
+
+    case "EMBED":
+      if (!block.url) return null;
+      return (
+        <div className="space-y-2">
+          {block.caption ? (
+            <p
+              className="text-sm font-medium"
+              style={{ fontFamily: headingFont }}
+            >
+              {block.caption}
+            </p>
+          ) : null}
+          <div className="aspect-video w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <iframe
+              src={block.url}
+              title={block.caption ?? "Embed"}
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="h-full w-full"
+            />
+          </div>
+        </div>
+      );
+
+    case "DIVIDER":
+      return (
+        <hr className="my-2 border-zinc-200 dark:border-zinc-800" />
+      );
+
+    default:
+      return null;
+  }
 }
