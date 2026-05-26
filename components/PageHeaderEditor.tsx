@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
+import { MediaUploadField } from "@/components/MediaUploadField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,18 +24,6 @@ const THEME_LABELS: Record<ThemeMode, string> = {
   AUTO: "Automático",
 };
 
-type Props = {
-  clientPageId: string;
-  initial: {
-    name: string;
-    bio: string;
-    avatarUrl: string;
-    coverUrl: string;
-    themeColor: string;
-    themeMode: ThemeMode;
-  };
-};
-
 type FormState = {
   name: string;
   bio: string;
@@ -44,7 +33,13 @@ type FormState = {
   themeMode: ThemeMode;
 };
 
-export function PageHeaderEditor({ clientPageId, initial }: Props) {
+type Props = {
+  clientPageId: string;
+  initial: FormState;
+  onLiveChange?: (patch: Partial<FormState>) => void;
+};
+
+export function PageHeaderEditor({ clientPageId, initial, onLiveChange }: Props) {
   const [form, setForm] = useState<FormState>(initial);
 
   const save = useCallback(
@@ -65,31 +60,20 @@ export function PageHeaderEditor({ clientPageId, initial }: Props) {
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    onLiveChange?.({ [key]: value } as Partial<FormState>);
   };
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="name">Nome do cliente</Label>
-          <Input
-            id="name"
-            value={form.name}
-            onChange={(e) => update("name", e.target.value)}
-            maxLength={100}
-            required
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="avatarUrl">URL do avatar (opcional)</Label>
-          <Input
-            id="avatarUrl"
-            type="url"
-            value={form.avatarUrl}
-            onChange={(e) => update("avatarUrl", e.target.value)}
-            placeholder="https://..."
-          />
-        </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="name">Nome do cliente</Label>
+        <Input
+          id="name"
+          value={form.name}
+          onChange={(e) => update("name", e.target.value)}
+          maxLength={100}
+          required
+        />
       </div>
 
       <div className="space-y-1.5">
@@ -108,18 +92,35 @@ export function PageHeaderEditor({ clientPageId, initial }: Props) {
         </p>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="coverUrl">URL da imagem de capa (opcional)</Label>
-        <Input
-          id="coverUrl"
-          type="url"
-          value={form.coverUrl}
-          onChange={(e) => update("coverUrl", e.target.value)}
-          placeholder="https://..."
-        />
-        <p className="text-xs text-muted-foreground">
-          Imagem grande no topo da página. Recomendamos 1200x400.
-        </p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="avatarUrl">Avatar (opcional)</Label>
+          <MediaUploadField
+            id="avatarUrl"
+            value={form.avatarUrl}
+            onChange={(v) => update("avatarUrl", v)}
+            kind="image"
+            emptyHint="Clique ou arraste a foto do cliente"
+            urlPlaceholder="https://..."
+          />
+          <p className="text-xs text-muted-foreground">
+            Quadrado, ~400×400. Aparece no topo da página.
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="coverUrl">Imagem de capa (opcional)</Label>
+          <MediaUploadField
+            id="coverUrl"
+            value={form.coverUrl}
+            onChange={(v) => update("coverUrl", v)}
+            kind="image"
+            emptyHint="Clique ou arraste a capa"
+            urlPlaceholder="https://..."
+          />
+          <p className="text-xs text-muted-foreground">
+            Banner horizontal, ~1200×400.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

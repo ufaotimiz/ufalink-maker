@@ -104,22 +104,14 @@ export const blockInputSchema = z
         message: "Texto obrigatório",
       });
     }
-    if (needsUrl.includes(data.type)) {
-      if (!data.url) {
+    if (needsUrl.includes(data.type) && data.url) {
+      const parsed = z.string().url().safeParse(data.url);
+      if (!parsed.success) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["url"],
-          message: "URL obrigatória",
+          message: "URL inválida — inclua https://",
         });
-      } else {
-        const parsed = z.string().url().safeParse(data.url);
-        if (!parsed.success) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["url"],
-            message: "URL inválida — inclua https://",
-          });
-        }
       }
     }
   });

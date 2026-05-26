@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, ImageIcon, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { MediaUploadField } from "@/components/MediaUploadField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,26 +78,28 @@ export function GalleryEditor({ clientPageId, images }: Props) {
         <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Adicionar imagem
         </Label>
-        <div className="grid gap-2 sm:grid-cols-[2fr_1fr_auto]">
-          <Input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://...imagem.jpg"
-            type="url"
-            required
-          />
+        <MediaUploadField
+          value={url}
+          onChange={setUrl}
+          kind="image"
+          emptyHint="Clique ou arraste uma imagem"
+          urlPlaceholder="https://...imagem.jpg"
+        />
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             placeholder="Legenda (opcional)"
             maxLength={120}
+            className="flex-1"
           />
           <Button type="submit" disabled={pendingAdd || !url}>
             {pendingAdd ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <Plus className="h-4 w-4" />
+              <Plus className="mr-2 h-4 w-4" />
             )}
+            Adicionar
           </Button>
         </div>
       </form>

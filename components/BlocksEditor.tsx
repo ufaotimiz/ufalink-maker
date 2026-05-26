@@ -21,6 +21,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { MediaUploadField } from "@/components/MediaUploadField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +38,16 @@ import {
   updateBlock,
 } from "@/lib/page-actions";
 import type { BlockType } from "@/lib/page-schemas";
+
+type MediaKind = "image" | "audio" | "video" | "file";
+
+const MEDIA_KIND_BY_TYPE: Partial<Record<BlockType, MediaKind>> = {
+  IMAGE: "image",
+  AUDIO: "audio",
+  VIDEO: "video",
+  FILE: "file",
+  DOCUMENT: "file",
+};
 
 type BlockItem = {
   id: string;
@@ -152,20 +163,10 @@ export function BlocksEditor({ clientPageId, blocks }: Props) {
   const onAddType = (type: BlockType) => {
     startAdd(async () => {
       const meta = BLOCK_META[type];
-      // Divider e itens com URL não precisam de validação no add — entram em modo
-      // "esperando preenchimento" se text/url forem obrigatórios. Para evitar
-      // falha do schema, pré-preenchemos placeholders mínimos só quando faz sentido.
       const seed =
         meta.needs === "text"
           ? { type, text: "Novo " + meta.label.toLowerCase(), url: "", caption: "" }
-          : meta.needs === "url"
-            ? {
-                type,
-                text: "",
-                url: "https://exemplo.com",
-                caption: "",
-              }
-            : { type, text: "", url: "", caption: "" };
+          : { type, text: "", url: "", caption: "" };
 
       const result = await addBlock(clientPageId, seed);
       if (!result.ok) toast.error(result.error);
@@ -301,17 +302,26 @@ function BlockRow({
     url !== (block.url ?? "") ||
     caption !== (block.caption ?? "");
 
-  const onSave = () => {
+  const saveWith = (overrides?: { text?: string; url?: string; caption?: string }) => {
     startSave(async () => {
       const result = await updateBlock(block.id, {
         type: block.type,
-        text,
-        url,
-        caption,
+        text: overrides?.text ?? text,
+        url: overrides?.url ?? url,
+        caption: overrides?.caption ?? caption,
       });
       if (!result.ok) toast.error(result.error);
       else toast.success("Bloco salvo");
     });
+  };
+
+  const onSave = () => saveWith();
+
+  const mediaKind = MEDIA_KIND_BY_TYPE[block.type];
+
+  const onUploadComplete = (newUrl: string) => {
+    setUrl(newUrl);
+    saveWith({ url: newUrl });
   };
 
   return (
@@ -393,17 +403,29 @@ function BlockRow({
       ) : null}
 
       {meta.needs === "url" ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor={`url-${block.id}`}>URL</Label>
-            <Input
-              id={`url-${block.id}`}
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder={meta.urlPlaceholder}
-              maxLength={1000}
-            />
+            <Label htmlFor={`url-${block.id}`}>
+              {mediaKind ? "Mídia" : "URL"}
+            </Label>
+            {mediaKind ? (
+              <MediaUploadField
+                id={`url-${block.id}`}
+                value={url}
+                onChange={onUploadComplete}
+                kind={mediaKind}
+                urlPlaceholder={meta.urlPlaceholder}
+              />
+            ) : (
+              <Input
+                id={`url-${block.id}`}
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder={meta.urlPlaceholder}
+                maxLength={1000}
+              />
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor={`caption-${block.id}`}>

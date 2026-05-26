@@ -23,12 +23,13 @@ import {
 } from "@/lib/fonts";
 import { updateClientPageFonts } from "@/lib/page-actions";
 
+type FormState = { headingFont: string; bodyFont: string };
+
 type Props = {
   clientPageId: string;
-  initial: { headingFont: string; bodyFont: string };
+  initial: FormState;
+  onLiveChange?: (patch: Partial<FormState>) => void;
 };
-
-type FormState = { headingFont: string; bodyFont: string };
 
 const CATEGORIES: FontCategory[] = [
   "sans",
@@ -38,8 +39,13 @@ const CATEGORIES: FontCategory[] = [
   "mono",
 ];
 
-export function FontEditor({ clientPageId, initial }: Props) {
+export function FontEditor({ clientPageId, initial, onLiveChange }: Props) {
   const [form, setForm] = useState<FormState>(initial);
+
+  const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    onLiveChange?.({ [key]: value } as Partial<FormState>);
+  };
 
   const save = useCallback(
     async (v: FormState): Promise<boolean> => {
@@ -84,14 +90,14 @@ export function FontEditor({ clientPageId, initial }: Props) {
           id="headingFont"
           label="Fonte dos títulos"
           value={form.headingFont}
-          onChange={(v) => setForm((p) => ({ ...p, headingFont: v }))}
+          onChange={(v) => update("headingFont", v)}
           grouped={grouped}
         />
         <FontPicker
           id="bodyFont"
           label="Fonte do corpo do texto"
           value={form.bodyFont}
-          onChange={(v) => setForm((p) => ({ ...p, bodyFont: v }))}
+          onChange={(v) => update("bodyFont", v)}
           grouped={grouped}
         />
       </div>
