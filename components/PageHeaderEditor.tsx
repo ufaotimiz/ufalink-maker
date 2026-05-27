@@ -30,6 +30,7 @@ type FormState = {
   avatarUrl: string;
   coverUrl: string;
   themeColor: string;
+  bgColor: string;
   themeMode: ThemeMode;
 };
 
@@ -46,6 +47,7 @@ export function PageHeaderEditor({ clientPageId, initial, onLiveChange }: Props)
     async (v: FormState): Promise<boolean> => {
       if (!v.name.trim()) return false;
       if (!/^#[0-9a-fA-F]{6}$/.test(v.themeColor)) return false;
+      if (v.bgColor && !/^#[0-9a-fA-F]{6}$/.test(v.bgColor)) return false;
       const result = await updateClientPage(clientPageId, v);
       return result.ok;
     },
@@ -142,6 +144,41 @@ export function PageHeaderEditor({ clientPageId, initial, onLiveChange }: Props)
               className="font-mono"
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="bgColor">Cor de fundo</Label>
+          <div className="flex gap-2">
+            <input
+              id="bgColor"
+              type="color"
+              value={form.bgColor || "#ffffff"}
+              onChange={(e) => update("bgColor", e.target.value)}
+              className="h-11 w-14 cursor-pointer rounded-md border border-input bg-background"
+            />
+            <Input
+              value={form.bgColor}
+              onChange={(e) => update("bgColor", e.target.value)}
+              pattern="^#[0-9a-fA-F]{6}$"
+              maxLength={7}
+              placeholder="(usa o tema)"
+              className="font-mono"
+            />
+            {form.bgColor ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => update("bgColor", "")}
+                className="h-11 px-2 text-xs"
+              >
+                Limpar
+              </Button>
+            ) : null}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Deixe vazio para usar a cor do modo (claro/escuro).
+          </p>
         </div>
 
         <div className="space-y-1.5">

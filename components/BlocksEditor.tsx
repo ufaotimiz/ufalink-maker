@@ -37,7 +37,7 @@ import {
   reorderItems,
   updateBlock,
 } from "@/lib/page-actions";
-import type { BlockType } from "@/lib/page-schemas";
+import { BLOCK_SIZES, type BlockSize, type BlockType } from "@/lib/page-schemas";
 
 type MediaKind = "image" | "audio" | "video" | "file";
 
@@ -52,10 +52,20 @@ const MEDIA_KIND_BY_TYPE: Partial<Record<BlockType, MediaKind>> = {
 type BlockItem = {
   id: string;
   type: BlockType;
+  size: BlockSize | null;
   text: string | null;
   url: string | null;
   caption: string | null;
 };
+
+const SIZE_LABEL: Record<BlockSize, string> = {
+  SMALL: "Pequeno",
+  MEDIUM: "Médio",
+  LARGE: "Grande",
+  FULL: "Largura total",
+};
+
+const SIZE_APPLIES_TO: BlockType[] = ["IMAGE", "VIDEO", "EMBED"];
 
 type Props = {
   clientPageId: string;
@@ -165,8 +175,8 @@ export function BlocksEditor({ clientPageId, blocks }: Props) {
       const meta = BLOCK_META[type];
       const seed =
         meta.needs === "text"
-          ? { type, text: "Novo " + meta.label.toLowerCase(), url: "", caption: "" }
-          : { type, text: "", url: "", caption: "" };
+          ? { type, size: "MEDIUM" as BlockSize, text: "Novo " + meta.label.toLowerCase(), url: "", caption: "" }
+          : { type, size: "MEDIUM" as BlockSize, text: "", url: "", caption: "" };
 
       const result = await addBlock(clientPageId, seed);
       if (!result.ok) toast.error(result.error);
@@ -295,17 +305,25 @@ function BlockRow({
   const [text, setText] = useState(block.text ?? "");
   const [url, setUrl] = useState(block.url ?? "");
   const [caption, setCaption] = useState(block.caption ?? "");
+  const [size, setSize] = useState<BlockSize>(block.size ?? "MEDIUM");
   const [pendingSave, startSave] = useTransition();
 
   const dirty =
     text !== (block.text ?? "") ||
     url !== (block.url ?? "") ||
-    caption !== (block.caption ?? "");
+    caption !== (block.caption ?? "") ||
+    size !== (block.size ?? "MEDIUM");
 
-  const saveWith = (overrides?: { text?: string; url?: string; caption?: string }) => {
+  const saveWith = (overrides?: {
+    text?: string;
+    url?: string;
+    caption?: string;
+    size?: BlockSize;
+  }) => {
     startSave(async () => {
       const result = await updateBlock(block.id, {
         type: block.type,
+        size: overrides?.size ?? size,
         text: overrides?.text ?? text,
         url: overrides?.url ?? url,
         caption: overrides?.caption ?? caption,
@@ -316,6 +334,13 @@ function BlockRow({
   };
 
   const onSave = () => saveWith();
+
+  const showSize = SIZE_APPLIES_TO.includes(block.type);
+
+  const onSizeSelect = (next: BlockSize) => {
+    setSize(next);
+    saveWith({ size: next });
+  };
 
   const mediaKind = MEDIA_KIND_BY_TYPE[block.type];
 
@@ -399,6 +424,26 @@ function BlockRow({
               placeholder={meta.textPlaceholder}
             />
           )}
+        </div>
+      ) : null}
+
+      {showSize ? (
+        <div className="mb-3">
+          <Label className="mb-1.5 block text-xs">Tamanho</Label>
+          <div className="flex flex-wrap gap-1">
+            {BLOCK_SIZES.map((s) => (
+              <Button
+                key={s}
+                type="button"
+                variant={size === s ? "default" : "outline"}
+                size="sm"
+                onClick={() => onSizeSelect(s)}
+                className="h-8 px-3 text-xs"
+              >
+                {SIZE_LABEL[s]}
+              </Button>
+            ))}
+          </div>
         </div>
       ) : null}
 

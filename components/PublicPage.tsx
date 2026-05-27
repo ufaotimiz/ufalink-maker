@@ -44,16 +44,29 @@ type BlockType =
   | "EMBED"
   | "DIVIDER";
 
+type BlockSize = "SMALL" | "MEDIUM" | "LARGE" | "FULL";
+
 type SocialLink = { id: string; platform: Social; url: string };
 type CustomButton = { id: string; label: string; url: string };
 type GalleryImage = { id: string; url: string; caption: string | null };
 type Block = {
   id: string;
   type: BlockType;
+  size: BlockSize | null;
   text: string | null;
   url: string | null;
   caption: string | null;
 };
+
+const SIZE_CLASS: Record<BlockSize, string> = {
+  SMALL: "mx-auto max-w-[180px]",
+  MEDIUM: "mx-auto max-w-[280px]",
+  LARGE: "w-full",
+  FULL: "w-full",
+};
+
+const sizeClassOf = (s: BlockSize | null | undefined) =>
+  SIZE_CLASS[s ?? "MEDIUM"];
 
 const SOCIAL_ICON: Record<Social, LucideIcon> = {
   INSTAGRAM: Instagram,
@@ -86,6 +99,7 @@ type Props = {
     avatarUrl: string | null;
     coverUrl: string | null;
     themeColor: string;
+    bgColor: string | null;
     themeMode: ThemeMode;
     headingFont: string;
     bodyFont: string;
@@ -99,12 +113,19 @@ type Props = {
 export function PublicPage({ page }: Props) {
   const isDark = page.themeMode === "DARK";
   const auto = page.themeMode === "AUTO";
+  const hasCustomBg = Boolean(page.bgColor);
 
   const themeClass = isDark
-    ? "dark bg-zinc-950 text-zinc-50"
+    ? hasCustomBg
+      ? "dark text-zinc-50"
+      : "dark bg-zinc-950 text-zinc-50"
     : auto
-      ? "bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50"
-      : "bg-white text-zinc-900";
+      ? hasCustomBg
+        ? "text-zinc-900 dark:text-zinc-50"
+        : "bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50"
+      : hasCustomBg
+        ? "text-zinc-900"
+        : "bg-white text-zinc-900";
 
   const heading = findFont(page.headingFont);
   const body = findFont(page.bodyFont);
@@ -123,6 +144,7 @@ export function PublicPage({ page }: Props) {
       style={{
         ["--brand" as never]: page.themeColor,
         fontFamily: body.stack,
+        ...(hasCustomBg ? { backgroundColor: page.bgColor as string } : {}),
       }}
     >
       {fontsHref ? (
@@ -146,7 +168,7 @@ export function PublicPage({ page }: Props) {
         />
       )}
 
-      <div className="mx-auto -mt-14 max-w-md px-4 pb-12">
+      <div className="mx-auto max-w-md px-4 pb-12 pt-8">
         <div className="flex flex-col items-center gap-4 text-center">
           {page.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -297,7 +319,7 @@ export function PublicPage({ page }: Props) {
             href="/"
             className="text-xs text-zinc-400 transition-colors hover:text-zinc-600 dark:hover:text-zinc-300"
           >
-            Feito com Link Maker
+            Feito com Aqui MKT!
           </Link>
         </footer>
       </div>
@@ -335,7 +357,7 @@ function BlockView({
     case "IMAGE":
       if (!block.url) return null;
       return (
-        <figure className="space-y-2">
+        <figure className={cn("space-y-2", sizeClassOf(block.size))}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={block.url}
@@ -375,7 +397,7 @@ function BlockView({
     case "VIDEO":
       if (!block.url) return null;
       return (
-        <div className="space-y-2">
+        <div className={cn("space-y-2", sizeClassOf(block.size))}>
           {block.caption ? (
             <p
               className="text-sm font-medium"
@@ -442,7 +464,7 @@ function BlockView({
     case "EMBED":
       if (!block.url) return null;
       return (
-        <div className="space-y-2">
+        <div className={cn("space-y-2", sizeClassOf(block.size))}>
           {block.caption ? (
             <p
               className="text-sm font-medium"

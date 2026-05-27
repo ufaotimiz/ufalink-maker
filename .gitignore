@@ -41,3 +41,5 @@ next-env.d.ts
 
 # claude code (local per-dev settings)
 .claude/settings.local.json
+
+.vercel

@@ -23,7 +23,7 @@ export function Header() {
           </div>
           <div className="hidden flex-col leading-tight sm:flex">
             <span className="text-base font-semibold tracking-tight">
-              Link Maker
+              Aqui MKT!
             </span>
             <span className="text-xs text-muted-foreground">
               Páginas para clientes

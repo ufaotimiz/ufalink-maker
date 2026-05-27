@@ -9,7 +9,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Link Maker",
+  title: "Aqui MKT!",
   description:
     "Crie links rastreáveis com UTM para Instagram, Facebook, TikTok, LinkedIn, X e YouTube. Simples, rápido e gratuito.",
   keywords: [

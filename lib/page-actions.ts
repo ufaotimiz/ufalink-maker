@@ -91,6 +91,7 @@ export async function updateClientPage(
     avatarUrl?: string;
     coverUrl?: string;
     themeColor: string;
+    bgColor?: string;
     themeMode: "LIGHT" | "DARK" | "AUTO";
   },
 ): Promise<ActionResult> {
@@ -111,6 +112,7 @@ export async function updateClientPage(
         avatarUrl: parsed.data.avatarUrl || null,
         coverUrl: parsed.data.coverUrl || null,
         themeColor: parsed.data.themeColor,
+        bgColor: parsed.data.bgColor || null,
         themeMode: parsed.data.themeMode,
       },
       select: { slug: true },
@@ -393,6 +395,7 @@ export async function removeGalleryImage(
 function normalizeBlock(input: BlockInput) {
   return {
     type: input.type,
+    size: input.size ?? "MEDIUM",
     text: input.text ? input.text : null,
     url: input.url ? input.url : null,
     caption: input.caption ? input.caption : null,

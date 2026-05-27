@@ -57,6 +57,12 @@ export const updatePageSchema = z.object({
     .string()
     .trim()
     .regex(/^#[0-9a-fA-F]{6}$/, "Use formato #RRGGBB"),
+  bgColor: z
+    .string()
+    .trim()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Use formato #RRGGBB")
+    .optional()
+    .or(z.literal("")),
   themeMode: z.enum(THEME_MODES),
 });
 
@@ -79,10 +85,14 @@ export const BLOCK_TYPES = [
 
 export type BlockType = (typeof BLOCK_TYPES)[number];
 
+export const BLOCK_SIZES = ["SMALL", "MEDIUM", "LARGE", "FULL"] as const;
+export type BlockSize = (typeof BLOCK_SIZES)[number];
+
 // Cada tipo tem campos diferentes. Validamos no server pela combinação.
 export const blockInputSchema = z
   .object({
     type: z.enum(BLOCK_TYPES),
+    size: z.enum(BLOCK_SIZES).optional(),
     text: z.string().trim().max(2000).optional().or(z.literal("")),
     url: z.string().trim().max(1000).optional().or(z.literal("")),
     caption: z.string().trim().max(280).optional().or(z.literal("")),

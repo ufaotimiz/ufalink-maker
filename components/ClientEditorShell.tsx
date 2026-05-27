@@ -54,12 +54,15 @@ type BlockType =
   | "EMBED"
   | "DIVIDER";
 
+type BlockSize = "SMALL" | "MEDIUM" | "LARGE" | "FULL";
+
 type SocialLink = { id: string; platform: Social; url: string };
 type CustomButton = { id: string; label: string; url: string };
 type GalleryImage = { id: string; url: string; caption: string | null };
 type Block = {
   id: string;
   type: BlockType;
+  size: BlockSize | null;
   text: string | null;
   url: string | null;
   caption: string | null;
@@ -73,6 +76,7 @@ export type ClientEditorPage = {
   avatarUrl: string | null;
   coverUrl: string | null;
   themeColor: string;
+  bgColor: string | null;
   themeMode: ThemeMode;
   headingFont: string;
   bodyFont: string;
@@ -93,6 +97,7 @@ type LiveHeader = {
   avatarUrl: string;
   coverUrl: string;
   themeColor: string;
+  bgColor: string;
   themeMode: ThemeMode;
 };
 
@@ -110,6 +115,7 @@ export function ClientEditorShell({ page, publicUrl }: Props) {
     avatarUrl: page.avatarUrl ?? "",
     coverUrl: page.coverUrl ?? "",
     themeColor: page.themeColor,
+    bgColor: page.bgColor ?? "",
     themeMode: page.themeMode,
   });
 
@@ -132,6 +138,7 @@ export function ClientEditorShell({ page, publicUrl }: Props) {
     avatarUrl: liveHeader.avatarUrl || null,
     coverUrl: liveHeader.coverUrl || null,
     themeColor: liveHeader.themeColor,
+    bgColor: liveHeader.bgColor || null,
     themeMode: liveHeader.themeMode,
     headingFont: liveFonts.headingFont,
     bodyFont: liveFonts.bodyFont,
@@ -233,6 +240,7 @@ export function ClientEditorShell({ page, publicUrl }: Props) {
                       avatarUrl: page.avatarUrl ?? "",
                       coverUrl: page.coverUrl ?? "",
                       themeColor: page.themeColor,
+                      bgColor: page.bgColor ?? "",
                       themeMode: page.themeMode,
                     }}
                     onLiveChange={onHeaderLiveChange}

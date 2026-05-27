@@ -53,7 +53,7 @@ export default async function HomePage() {
           </div>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             Crie páginas{" "}
-            <span className="bg-gradient-to-r from-pink-500 via-violet-500 to-sky-500 bg-clip-text text-transparent">
+            <span className="underline decoration-foreground/40 underline-offset-4">
               pros seus clientes
             </span>
           </h1>
@@ -127,7 +127,7 @@ export default async function HomePage() {
         </section>
 
         <footer className="mx-auto mt-16 max-w-6xl border-t pt-6 text-center text-xs text-muted-foreground">
-          <p>Link Maker — feito com Next.js + Tailwind.</p>
+          <p>Aqui MKT! — feito com Next.js + Tailwind.</p>
         </footer>
       </main>
     </div>
