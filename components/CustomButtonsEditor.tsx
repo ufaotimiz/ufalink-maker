@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowDown, ArrowUp, Loader2, MousePointerClick, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getLinkIcon } from "@/lib/link-icon";
 import { addCustomButton, removeCustomButton, reorderItems } from "@/lib/page-actions";
 
 type ButtonItem = { id: string; label: string; url: string };
@@ -104,7 +105,9 @@ export function CustomButtonsEditor({ clientPageId, buttons }: Props) {
         </p>
       ) : (
         <ul className="space-y-2">
-          {buttons.map((btn, idx) => (
+          {buttons.map((btn, idx) => {
+            const Icon = getLinkIcon(btn.url);
+            return (
             <li
               key={btn.id}
               className="flex items-center gap-2 rounded-lg border bg-card p-3"
@@ -133,7 +136,7 @@ export function CustomButtonsEditor({ clientPageId, buttons }: Props) {
                   <ArrowDown className="h-3 w-3" />
                 </Button>
               </div>
-              <MousePointerClick className="h-5 w-5 shrink-0 text-primary" />
+              <Icon className="h-5 w-5 shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{btn.label}</p>
                 <p className="truncate text-xs text-muted-foreground">
@@ -156,7 +159,8 @@ export function CustomButtonsEditor({ clientPageId, buttons }: Props) {
                 )}
               </Button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

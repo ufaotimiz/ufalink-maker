@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   Download,
   Facebook,
@@ -18,6 +17,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { findFont, googleFontsHref } from "@/lib/fonts";
+import { getLinkIcon } from "@/lib/link-icon";
 import { cn } from "@/lib/utils";
 
 type Social =
@@ -236,32 +236,36 @@ export function PublicPage({ page }: Props) {
 
         {page.buttons.length > 0 ? (
           <div className="mt-8 space-y-3">
-            {page.buttons.map((btn) => (
-              <a
-                key={btn.id}
-                href={btn.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-14 items-center justify-center rounded-xl border-2 px-4 text-center text-sm font-semibold transition-all hover:scale-[1.02] hover:shadow-md"
-                style={{
-                  borderColor: page.themeColor,
-                  color: page.themeColor,
-                  fontFamily: heading.stack,
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.backgroundColor =
-                    page.themeColor;
-                  (e.currentTarget as HTMLElement).style.color = "#fff";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = "";
-                  (e.currentTarget as HTMLElement).style.color =
-                    page.themeColor;
-                }}
-              >
-                {btn.label}
-              </a>
-            ))}
+            {page.buttons.map((btn) => {
+              const Icon = getLinkIcon(btn.url);
+              return (
+                <a
+                  key={btn.id}
+                  href={btn.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-14 items-center justify-center gap-2.5 rounded-xl border-2 px-4 text-center text-sm font-semibold transition-all hover:scale-[1.02] hover:shadow-md"
+                  style={{
+                    borderColor: page.themeColor,
+                    color: page.themeColor,
+                    fontFamily: heading.stack,
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor =
+                      page.themeColor;
+                    (e.currentTarget as HTMLElement).style.color = "#fff";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = "";
+                    (e.currentTarget as HTMLElement).style.color =
+                      page.themeColor;
+                  }}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  {btn.label}
+                </a>
+              );
+            })}
           </div>
         ) : null}
 
@@ -313,15 +317,6 @@ export function PublicPage({ page }: Props) {
             </div>
           </div>
         ) : null}
-
-        <footer className="mt-16 text-center">
-          <Link
-            href="/"
-            className="text-xs text-zinc-400 transition-colors hover:text-zinc-600 dark:hover:text-zinc-300"
-          >
-            Feito com Aqui MKT!
-          </Link>
-        </footer>
       </div>
     </div>
   );
