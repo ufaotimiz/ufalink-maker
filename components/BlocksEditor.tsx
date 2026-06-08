@@ -2,11 +2,10 @@
 
 import { useState, useTransition } from "react";
 import {
-  ArrowDown,
-  ArrowUp,
   FileAudio,
   FileText,
   Film,
+  GripVertical,
   Heading as HeadingIcon,
   Image as ImageIcon,
   Loader2,
@@ -21,7 +20,9 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { IconPicker } from "@/components/IconPicker";
 import { MediaUploadField } from "@/components/MediaUploadField";
+import { SortableList, type DragHandle } from "@/components/SortableList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +36,7 @@ import {
   addBlock,
   removeBlock,
   reorderItems,
+  setItemIcon,
   updateBlock,
 } from "@/lib/page-actions";
 import { BLOCK_SIZES, type BlockSize, type BlockType } from "@/lib/page-schemas";
@@ -49,6 +51,9 @@ const MEDIA_KIND_BY_TYPE: Partial<Record<BlockType, MediaKind>> = {
   DOCUMENT: "file",
 };
 
+// Tipos cujo ícone aparece na página pública e pode ser personalizado.
+const ICON_CUSTOMIZABLE: BlockType[] = ["FILE", "DOCUMENT"];
+
 type BlockItem = {
   id: string;
   type: BlockType;
@@ -56,6 +61,7 @@ type BlockItem = {
   text: string | null;
   url: string | null;
   caption: string | null;
+  icon: string | null;
 };
 
 const SIZE_LABEL: Record<BlockSize, string> = {
@@ -167,7 +173,8 @@ const ALL_TYPES: BlockType[] = [
 
 export function BlocksEditor({ clientPageId, blocks }: Props) {
   const [pendingAdd, startAdd] = useTransition();
-  const [pendingMove, startMove] = useTransition();
+  const [, startMove] = useTransition();
+  const [, startIcon] = useTransition();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const onAddType = (type: BlockType) => {
@@ -184,19 +191,16 @@ export function BlocksEditor({ clientPageId, blocks }: Props) {
     });
   };
 
-  const onMove = (id: string, direction: "up" | "down") => {
-    const idx = blocks.findIndex((b) => b.id === id);
-    if (idx === -1) return;
-    const newIdx = direction === "up" ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= blocks.length) return;
-    const next = [...blocks];
-    [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+  const onReorder = (orderedIds: string[]) => {
     startMove(async () => {
-      const result = await reorderItems(
-        clientPageId,
-        "block",
-        next.map((b) => b.id),
-      );
+      const result = await reorderItems(clientPageId, "block", orderedIds);
+      if (!result.ok) toast.error(result.error);
+    });
+  };
+
+  const onIconChange = (id: string, icon: string | null) => {
+    startIcon(async () => {
+      const result = await setItemIcon(clientPageId, "block", id, icon);
       if (!result.ok) toast.error(result.error);
     });
   };
@@ -257,22 +261,18 @@ export function BlocksEditor({ clientPageId, blocks }: Props) {
           Nenhum bloco ainda — use o botão acima para começar.
         </p>
       ) : (
-        <ul className="space-y-3">
-          {blocks.map((block, idx) => (
-            <li key={block.id}>
-              <BlockRow
-                block={block}
-                index={idx}
-                total={blocks.length}
-                pendingMove={pendingMove}
-                pendingDelete={pendingDeleteId === block.id}
-                onMoveUp={() => onMove(block.id, "up")}
-                onMoveDown={() => onMove(block.id, "down")}
-                onRemove={() => onRemove(block.id)}
-              />
-            </li>
-          ))}
-        </ul>
+        <SortableList items={blocks} onReorder={onReorder} className="space-y-3">
+          {(block, handle) => (
+            <BlockRow
+              block={block}
+              index={blocks.findIndex((b) => b.id === block.id)}
+              handle={handle}
+              pendingDelete={pendingDeleteId === block.id}
+              onRemove={() => onRemove(block.id)}
+              onIconChange={(icon) => onIconChange(block.id, icon)}
+            />
+          )}
+        </SortableList>
       )}
     </div>
   );
@@ -281,26 +281,23 @@ export function BlocksEditor({ clientPageId, blocks }: Props) {
 type RowProps = {
   block: BlockItem;
   index: number;
-  total: number;
-  pendingMove: boolean;
+  handle: DragHandle;
   pendingDelete: boolean;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   onRemove: () => void;
+  onIconChange: (icon: string | null) => void;
 };
 
 function BlockRow({
   block,
   index,
-  total,
-  pendingMove,
+  handle,
   pendingDelete,
-  onMoveUp,
-  onMoveDown,
   onRemove,
+  onIconChange,
 }: RowProps) {
   const meta = BLOCK_META[block.type];
   const Icon = meta.icon;
+  const canCustomizeIcon = ICON_CUSTOMIZABLE.includes(block.type);
 
   const [text, setText] = useState(block.text ?? "");
   const [url, setUrl] = useState(block.url ?? "");
@@ -353,51 +350,45 @@ function BlockRow({
     <div className="rounded-lg border bg-card p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            ref={handle.setActivatorNodeRef}
+            {...handle.attributes}
+            {...handle.listeners}
+            className="shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+            aria-label="Arrastar para reordenar"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-xs font-semibold">
             {index + 1}
           </span>
-          <Icon className="h-4 w-4 text-muted-foreground" />
+          {canCustomizeIcon ? (
+            <IconPicker
+              value={block.icon}
+              fallback={meta.icon}
+              onChange={onIconChange}
+            />
+          ) : (
+            <Icon className="h-4 w-4 text-muted-foreground" />
+          )}
           <span className="text-sm font-medium">{meta.label}</span>
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={onMoveUp}
-            disabled={index === 0 || pendingMove}
-            aria-label="Mover para cima"
-          >
-            <ArrowUp className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={onMoveDown}
-            disabled={index === total - 1 || pendingMove}
-            aria-label="Mover para baixo"
-          >
-            <ArrowDown className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-destructive hover:text-destructive"
-            onClick={onRemove}
-            disabled={pendingDelete}
-            aria-label="Remover"
-          >
-            {pendingDelete ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-destructive hover:text-destructive"
+          onClick={onRemove}
+          disabled={pendingDelete}
+          aria-label="Remover"
+        >
+          {pendingDelete ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+        </Button>
       </div>
 
       {meta.needs === "text" ? (
@@ -489,7 +480,7 @@ function BlockRow({
 
       {meta.needs === "none" ? (
         <p className="text-xs text-muted-foreground">
-          Sem conteúdo — só posicione com as setas acima.
+          Sem conteúdo — só posicione arrastando pelo ícone à esquerda.
         </p>
       ) : null}
 

@@ -141,6 +141,9 @@ export const galleryImageSchema = z.object({
   caption: z.string().trim().max(120).optional().or(z.literal("")),
 });
 
+// Override de ícone de um item: null = automático; senão chave do registro ou URL de imagem.
+export const iconValueSchema = z.union([z.null(), z.string().trim().max(2000)]);
+
 export type CreatePageInput = z.infer<typeof createPageSchema>;
 export type UpdatePageInput = z.infer<typeof updatePageSchema>;
 export type UpdateFontsInput = z.infer<typeof updateFontsSchema>;

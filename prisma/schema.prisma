@@ -129,6 +129,8 @@ model SocialLink {
 
   platform     SocialPlatform
   url          String
+  // override de ícone: null = automático; URL http = imagem; senão = chave do registro
+  icon         String?
   order        Int            @default(0)
 
   @@index([clientPageId])
@@ -141,6 +143,8 @@ model CustomButton {
 
   label        String
   url          String
+  // override de ícone: null = automático; URL http = imagem; senão = chave do registro
+  icon         String?
   order        Int        @default(0)
 
   @@index([clientPageId])
@@ -190,6 +194,8 @@ model Block {
   url          String?
   // caption opcional (descrição, autor, etc.)
   caption      String?
+  // override de ícone (FILE/DOCUMENT): null = automático; URL http = imagem; senão = chave
+  icon         String?
   order        Int        @default(0)
 
   createdAt    DateTime   @default(now())

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { LinkIconView } from "@/components/LinkIconView";
 import { findFont, googleFontsHref } from "@/lib/fonts";
 import { getLinkIcon } from "@/lib/link-icon";
 import { cn } from "@/lib/utils";
@@ -46,8 +47,18 @@ type BlockType =
 
 type BlockSize = "SMALL" | "MEDIUM" | "LARGE" | "FULL";
 
-type SocialLink = { id: string; platform: Social; url: string };
-type CustomButton = { id: string; label: string; url: string };
+type SocialLink = {
+  id: string;
+  platform: Social;
+  url: string;
+  icon: string | null;
+};
+type CustomButton = {
+  id: string;
+  label: string;
+  url: string;
+  icon: string | null;
+};
 type GalleryImage = { id: string; url: string; caption: string | null };
 type Block = {
   id: string;
@@ -56,6 +67,7 @@ type Block = {
   text: string | null;
   url: string | null;
   caption: string | null;
+  icon: string | null;
 };
 
 const SIZE_CLASS: Record<BlockSize, string> = {
@@ -203,7 +215,6 @@ export function PublicPage({ page }: Props) {
           {page.socialLinks.length > 0 ? (
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
               {page.socialLinks.map((social) => {
-                const Icon = SOCIAL_ICON[social.platform];
                 return (
                   <a
                     key={social.id}
@@ -226,7 +237,11 @@ export function PublicPage({ page }: Props) {
                       (e.currentTarget as HTMLElement).style.borderColor = "";
                     }}
                   >
-                    <Icon className="h-5 w-5" />
+                    <LinkIconView
+                      icon={social.icon}
+                      fallback={SOCIAL_ICON[social.platform]}
+                      className="h-5 w-5"
+                    />
                   </a>
                 );
               })}
@@ -237,7 +252,6 @@ export function PublicPage({ page }: Props) {
         {page.buttons.length > 0 ? (
           <div className="mt-8 space-y-3">
             {page.buttons.map((btn) => {
-              const Icon = getLinkIcon(btn.url);
               return (
                 <a
                   key={btn.id}
@@ -261,7 +275,11 @@ export function PublicPage({ page }: Props) {
                       page.themeColor;
                   }}
                 >
-                  <Icon className="h-5 w-5 shrink-0" />
+                  <LinkIconView
+                    icon={btn.icon}
+                    fallback={getLinkIcon(btn.url)}
+                    className="h-5 w-5 shrink-0"
+                  />
                   {btn.label}
                 </a>
               );
@@ -420,7 +438,11 @@ function BlockView({
           className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-colors hover:border-current dark:border-zinc-800 dark:bg-zinc-900"
           style={{ color: themeColor }}
         >
-          <Paperclip className="h-5 w-5 shrink-0" />
+          <LinkIconView
+            icon={block.icon}
+            fallback={Paperclip}
+            className="h-5 w-5 shrink-0"
+          />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">
               {block.caption ?? "Baixar arquivo"}
@@ -443,7 +465,11 @@ function BlockView({
           className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-colors hover:border-current dark:border-zinc-800 dark:bg-zinc-900"
           style={{ color: themeColor }}
         >
-          <FileText className="h-5 w-5 shrink-0" />
+          <LinkIconView
+            icon={block.icon}
+            fallback={FileText}
+            className="h-5 w-5 shrink-0"
+          />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">
               {block.caption ?? "Abrir documento"}

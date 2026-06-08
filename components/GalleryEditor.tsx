@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowDown, ArrowUp, ImageIcon, Loader2, Plus, Trash2 } from "lucide-react";
+import { GripVertical, ImageIcon, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { MediaUploadField } from "@/components/MediaUploadField";
+import { SortableList } from "@/components/SortableList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,7 @@ export function GalleryEditor({ clientPageId, images }: Props) {
   const [caption, setCaption] = useState("");
   const [pendingAdd, startAdd] = useTransition();
   const [pendingDelete, startDelete] = useTransition();
-  const [pendingMove, startMove] = useTransition();
+  const [, startMove] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const onAdd = (e: React.FormEvent) => {
@@ -52,19 +53,9 @@ export function GalleryEditor({ clientPageId, images }: Props) {
     });
   };
 
-  const onMove = (id: string, direction: "up" | "down") => {
-    const idx = images.findIndex((i) => i.id === id);
-    if (idx === -1) return;
-    const newIdx = direction === "up" ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= images.length) return;
-    const next = [...images];
-    [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+  const onReorder = (orderedIds: string[]) => {
     startMove(async () => {
-      const result = await reorderItems(
-        clientPageId,
-        "gallery",
-        next.map((i) => i.id),
-      );
+      const result = await reorderItems(clientPageId, "gallery", orderedIds);
       if (!result.ok) toast.error(result.error);
     });
   };
@@ -109,75 +100,70 @@ export function GalleryEditor({ clientPageId, images }: Props) {
           Nenhuma imagem ainda — adicione acima.
         </p>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {images.map((img, idx) => (
-            <li
-              key={img.id}
-              className="group relative overflow-hidden rounded-lg border bg-card"
-            >
-              <div className="relative aspect-square w-full overflow-hidden bg-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={img.url}
-                  alt={img.caption ?? ""}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => onMove(img.id, "up")}
-                    disabled={idx === 0 || pendingMove}
-                    aria-label="Mover para cima"
-                  >
-                    <ArrowUp className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => onMove(img.id, "down")}
-                    disabled={idx === images.length - 1 || pendingMove}
-                    aria-label="Mover para baixo"
-                  >
-                    <ArrowDown className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => onRemove(img.id)}
-                    disabled={pendingDelete && deletingId === img.id}
-                    aria-label="Remover"
-                  >
-                    {pendingDelete && deletingId === img.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
+        <SortableList
+          items={images}
+          onReorder={onReorder}
+          strategy="grid"
+          className="grid gap-3 sm:grid-cols-2"
+        >
+          {(img, handle) => {
+            const idx = images.findIndex((i) => i.id === img.id);
+            return (
+              <div className="group relative overflow-hidden rounded-lg border bg-card">
+                <div className="relative aspect-square w-full overflow-hidden bg-muted">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.url}
+                    alt={img.caption ?? ""}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                  <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      ref={handle.setActivatorNodeRef}
+                      {...handle.attributes}
+                      {...handle.listeners}
+                      className="h-7 w-7 cursor-grab touch-none active:cursor-grabbing"
+                      aria-label="Arrastar para reordenar"
+                    >
+                      <GripVertical className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => onRemove(img.id)}
+                      disabled={pendingDelete && deletingId === img.id}
+                      aria-label="Remover"
+                    >
+                      {pendingDelete && deletingId === img.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                  <div className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-[10px] font-semibold text-white">
+                    {idx + 1}
+                  </div>
                 </div>
-                <div className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-[10px] font-semibold text-white">
-                  {idx + 1}
-                </div>
+                {img.caption ? (
+                  <p className="truncate p-2 text-xs text-muted-foreground">
+                    <ImageIcon className="mr-1 inline h-3 w-3" />
+                    {img.caption}
+                  </p>
+                ) : null}
               </div>
-              {img.caption ? (
-                <p className="truncate p-2 text-xs text-muted-foreground">
-                  <ImageIcon className="mr-1 inline h-3 w-3" />
-                  {img.caption}
-                </p>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+            );
+          }}
+        </SortableList>
       )}
     </div>
   );

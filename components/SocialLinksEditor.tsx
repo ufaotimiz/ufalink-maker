@@ -1,9 +1,25 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowDown, ArrowUp, Facebook, Globe, Instagram, Linkedin, Loader2, Mail, MessageCircle, Music2, Plus, Trash2, Twitter, Youtube } from "lucide-react";
+import {
+  Facebook,
+  Globe,
+  GripVertical,
+  Instagram,
+  Linkedin,
+  Loader2,
+  Mail,
+  MessageCircle,
+  Music2,
+  Plus,
+  Trash2,
+  Twitter,
+  Youtube,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import { IconPicker } from "@/components/IconPicker";
+import { SortableList } from "@/components/SortableList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +30,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { addSocialLink, removeSocialLink, reorderItems } from "@/lib/page-actions";
+import {
+  addSocialLink,
+  removeSocialLink,
+  reorderItems,
+  setItemIcon,
+} from "@/lib/page-actions";
 import { SOCIAL_PLATFORMS } from "@/lib/page-schemas";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -23,6 +44,7 @@ type SocialLink = {
   id: string;
   platform: (typeof SOCIAL_PLATFORMS)[number];
   url: string;
+  icon: string | null;
 };
 
 type Props = {
@@ -97,7 +119,8 @@ export function SocialLinksEditor({ clientPageId, links }: Props) {
   const [url, setUrl] = useState("");
   const [pendingAdd, startAdd] = useTransition();
   const [pendingDelete, startDelete] = useTransition();
-  const [pendingMove, startMove] = useTransition();
+  const [, startMove] = useTransition();
+  const [, startIcon] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const onAdd = (e: React.FormEvent) => {
@@ -122,19 +145,16 @@ export function SocialLinksEditor({ clientPageId, links }: Props) {
     });
   };
 
-  const onMove = (id: string, direction: "up" | "down") => {
-    const idx = links.findIndex((l) => l.id === id);
-    if (idx === -1) return;
-    const newIdx = direction === "up" ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= links.length) return;
-    const next = [...links];
-    [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+  const onReorder = (orderedIds: string[]) => {
     startMove(async () => {
-      const result = await reorderItems(
-        clientPageId,
-        "social",
-        next.map((l) => l.id),
-      );
+      const result = await reorderItems(clientPageId, "social", orderedIds);
+      if (!result.ok) toast.error(result.error);
+    });
+  };
+
+  const onIconChange = (id: string, icon: string | null) => {
+    startIcon(async () => {
+      const result = await setItemIcon(clientPageId, "social", id, icon);
       if (!result.ok) toast.error(result.error);
     });
   };
@@ -202,40 +222,26 @@ export function SocialLinksEditor({ clientPageId, links }: Props) {
           Nenhuma rede ainda — adicione acima.
         </p>
       ) : (
-        <ul className="space-y-2">
-          {links.map((link, idx) => {
+        <SortableList items={links} onReorder={onReorder} className="space-y-2">
+          {(link, handle) => {
             const lmeta = META[link.platform];
-            const LIcon = lmeta.icon;
             return (
-              <li
-                key={link.id}
-                className="flex items-center gap-2 rounded-lg border bg-card p-3"
-              >
-                <div className="flex flex-col">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onMove(link.id, "up")}
-                    disabled={idx === 0 || pendingMove}
-                    className="h-5 w-5"
-                    aria-label="Mover para cima"
-                  >
-                    <ArrowUp className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onMove(link.id, "down")}
-                    disabled={idx === links.length - 1 || pendingMove}
-                    className="h-5 w-5"
-                    aria-label="Mover para baixo"
-                  >
-                    <ArrowDown className="h-3 w-3" />
-                  </Button>
-                </div>
-                <LIcon className={cn("h-5 w-5 shrink-0", lmeta.color)} />
+              <div className="flex items-center gap-2 rounded-lg border bg-card p-3">
+                <button
+                  type="button"
+                  ref={handle.setActivatorNodeRef}
+                  {...handle.attributes}
+                  {...handle.listeners}
+                  className="shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+                  aria-label="Arrastar para reordenar"
+                >
+                  <GripVertical className="h-4 w-4" />
+                </button>
+                <IconPicker
+                  value={link.icon}
+                  fallback={lmeta.icon}
+                  onChange={(icon) => onIconChange(link.id, icon)}
+                />
                 <div className="min-w-0 flex-1">
                   <Badge variant="secondary" className="mb-1">
                     {lmeta.label}
@@ -259,10 +265,10 @@ export function SocialLinksEditor({ clientPageId, links }: Props) {
                     <Trash2 className="h-4 w-4" />
                   )}
                 </Button>
-              </li>
+              </div>
             );
-          })}
-        </ul>
+          }}
+        </SortableList>
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import {
   createPageSchema,
   customButtonSchema,
   galleryImageSchema,
+  iconValueSchema,
   socialLinkSchema,
   updateFontsSchema,
   updatePageSchema,
@@ -507,6 +508,50 @@ export async function removeBlock(blockId: string): Promise<ActionResult> {
 // ============================================================
 // Reorder (genérico para social/button/gallery/block)
 // ============================================================
+
+type IconKind = "social" | "button" | "block";
+
+export async function setItemIcon(
+  clientPageId: string,
+  kind: IconKind,
+  id: string,
+  icon: string | null,
+): Promise<ActionResult> {
+  try {
+    const userId = await requireUserId();
+    await assertOwner(clientPageId, userId);
+
+    const parsed = iconValueSchema.safeParse(icon);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Inválido" };
+    }
+    const value =
+      typeof parsed.data === "string" && parsed.data ? parsed.data : null;
+
+    const where = { id, clientPageId };
+    const data = { icon: value };
+    if (kind === "social") {
+      await prisma.socialLink.updateMany({ where, data });
+    } else if (kind === "button") {
+      await prisma.customButton.updateMany({ where, data });
+    } else {
+      await prisma.block.updateMany({ where, data });
+    }
+
+    const page = await prisma.clientPage.findUnique({
+      where: { id: clientPageId },
+      select: { slug: true },
+    });
+    revalidatePath(`/dashboard/clients/${clientPageId}`);
+    if (page) revalidatePath(`/p/${page.slug}`);
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro inesperado",
+    };
+  }
+}
 
 type ItemKind = "social" | "button" | "gallery" | "block";
 

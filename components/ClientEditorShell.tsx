@@ -56,8 +56,18 @@ type BlockType =
 
 type BlockSize = "SMALL" | "MEDIUM" | "LARGE" | "FULL";
 
-type SocialLink = { id: string; platform: Social; url: string };
-type CustomButton = { id: string; label: string; url: string };
+type SocialLink = {
+  id: string;
+  platform: Social;
+  url: string;
+  icon: string | null;
+};
+type CustomButton = {
+  id: string;
+  label: string;
+  url: string;
+  icon: string | null;
+};
 type GalleryImage = { id: string; url: string; caption: string | null };
 type Block = {
   id: string;
@@ -66,6 +76,7 @@ type Block = {
   text: string | null;
   url: string | null;
   caption: string | null;
+  icon: string | null;
 };
 
 export type ClientEditorPage = {
